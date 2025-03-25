@@ -33,7 +33,7 @@ const userSchema = new mongoose.Schema({
 
 // Generate JWT for authentication
 userSchema.methods.generateAuthToken = function () {
-    const token = jwt.sign({ _id: this._id }, process.env.JWT_SECRET)
+    const token = jwt.sign({ _id: this._id }, process.env.JWT_SECRET, { expiresIn: '24h' })
     return token
 }
 
@@ -44,10 +44,11 @@ userSchema.methods.comparePassword = async function (password) {
 }
 
 // Hash password before saving it to the database
-userSchema.statics.hashPassword = async (password) => {
+userSchema.statics.hashPassword = async function (password) {
     return await bcrypt.hash(password, 10)
 }
 
 // Create and export the user model
-const userModel = mongoose.model('users', userSchema)
-module.exports = userModel
+const userModel = mongoose.model('user', userSchema)
+
+module.exports = { userModel }

@@ -1,7 +1,7 @@
-const userModel = require('../models/userModel')
+const { userModel } = require('../models/userModel')
 const userService = require('../services/userService')
 const { validationResult } = require('express-validator')
-
+const { blackListModel } = require('../models/blackListedModel')
 // Handle user registration
 const registerUser = async (req, res) => {
     const errors = validationResult(req);
@@ -11,17 +11,16 @@ const registerUser = async (req, res) => {
     }
 
     const { fullName, email, password } = req.body
-
     // Hash password using model method
     const hashedPassword = await userModel.hashPassword(password)
 
-    console.log('Controller:', fullName, email, hashedPassword);
+    // console.log('Controller:', fullName, email, hashedPassword);
     // console.log(req.body);
 
     // Create user using service layer
     const user = await userService.createUser({
         firstName: fullName.firstName,
-        lastName: fullName.lastName,
+        lastName: fullName?.lastName,
         email,
         password: hashedPassword
     })
@@ -61,6 +60,21 @@ const loginUser = async (req, res) => {
 
     // Generate token for authenticated user
     const token = user.generateAuthToken()
+    res.cookie('token', token)
     res.status(200).json({ token, user })
 }
-module.exports = { registerUser, loginUser }
+
+//Handle user authentication
+const getUserProfile = async (req, res, next) => {
+    res.status(200).json(req.user)
+}
+
+// Handle user logout
+const logoutUser = async (req, res, next) => {
+    res.clearCookie('token');
+    const token = req.cookies.token || req.headers.authorization?.split(' ')[1];
+    await blackListModel.create({ token })
+    res.status(200).json({ msg: "Logged out" })
+}
+
+module.exports = { registerUser, loginUser, getUserProfile, logoutUser }
